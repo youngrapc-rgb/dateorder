@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>꽃 매장 주문/입고 관리 시스템</title>
+    <style>
+        body { 
+            font-family: 'Malgun Gothic', -apple-system, sans-serif; 
+            background-color: #f9f9f9; 
+            margin: 0; 
+            padding: 12px 8px; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: #fff; 
+            padding: 20px 15px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06); 
+        }
+        h2 { text-align: center; color: #e84393; margin-top: 0; margin-bottom: 20px; font-size: 22px; }
+        
+        .form-grid-top { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 12px 8px; 
+            margin-bottom: 12px; 
+        }
+        
+        .form-grid-row { 
+            display: grid; 
+            grid-template-columns: 2.2fr 1.8fr 0.7fr; 
+            gap: 12px 6px; 
+            margin-bottom: 15px; 
+        }
+        .form-group { display: flex; flex-direction: column; position: relative; min-width: 0; } 
+        
+        label { 
+            font-weight: bold; 
+            margin-bottom: 4px; 
+            font-size: 13px; 
+            color: #555; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+        }
+        select, input { padding: 9px 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; width: 100%; }
+        select:focus, input:focus { outline: none; border-color: #e84393; box-shadow: 0 0 0 2px rgba(232, 67, 147, 0.1); }
+
+        #flowerQuantity { text-align: center; padding-left: 2px; padding-right: 2px; }
+
+        .type-btn-group { display: flex; gap: 4px; height: 38px; }
+        .type-btn-group input[type="radio"] { display: none; }
+        .type-btn-group label {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            background-color: #f1f2f6; color: #636e72; border: 1px solid #ddd;
+            border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer;
+            transition: all 0.2s ease; margin-bottom: 0; user-select: none;
+        }
+        
+        .type-btn-group input[type="radio"]#typeReservation:checked + label {
+            background-color: #e84393; color: white; border-color: #e84393;
+            box-shadow: 0 2px 6px rgba(232, 67, 147, 0.3);
+        }
+        
+        .type-btn-group input[type="radio"]#typeStore:checked + label {
+            background-color: #0984e3; color: white; border-color: #0984e3;
+            box-shadow: 0 2px 6px rgba(9, 132, 227, 0.3);
+        }
+
+        .type-btn-group input[type="radio"]#typeNone:checked + label {
+            background-color: #fdcb6e; color: #2d3436; border-color: #fdcb6e;
+            box-shadow: 0 2px 6px rgba(253, 203, 110, 0.3);
+        }
+
+        .autocomplete-suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 1px solid #e84393; border-top: none;
+            border-radius: 0 0 8px 8px; max-height: 160px; overflow-y: auto;
+            z-index: 1000; box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+        }
+
+        .autocomplete-item { padding: 9px 12px; font-size: 14px; cursor: pointer; border-bottom: 1px solid #f1f2f6; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:hover, .autocomplete-item.active { background-color: #ffeaa7; color: #d63079; font-weight: bold; }
+
+        .btn-container { display: flex; gap: 8px; margin-bottom: 12px; }
+        button { flex: 1; padding: 11px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .btn-submit { background-color: #e84393; color: white; }
+        .btn-submit:hover { background-color: #d63079; }
+        .btn-sync { background-color: #0984e3; color: white; }
+        .btn-sync:hover { background-color: #74b9ff; }
+        .btn-action { background-color: #00b894; color: white; }
+        .btn-action:hover { opacity: 0.9; }
+        .btn-clear { background-color: #636e72; color: white; flex: 0.4; }
+        .btn-clear:hover { background-color: #2d3436; }
+
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+        h3 { margin: 0; color: #444; font-size: 16px; }
+        
+        .table-responsive { 
+            width: 100%; 
+            max-height: 380px; 
+            overflow-y: auto;  
+            overflow-x: auto;  
+            -webkit-overflow-scrolling: touch; 
+            margin-top: 10px; 
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        table th { 
+            position: sticky; 
+            top: 0; 
+            background-color: #f1f2f6; 
+            z-index: 10;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 9px 6px; text-align: center; font-size: 13px; white-space: nowrap; }
+        
+        @keyframes highlightPulse {
+            0% { background-color: #ffeaa7; }
+            50% { background-color: #fdcb6e; }
+            100% { background-color: #ffeaa7; }
+        }
+        .row-highlight {
+            animation: highlightPulse 0.8s ease-in-out 2;
+            background-color: #ffeaa7 !important;
+        }
+
+        .action-btns { display: flex; gap: 4px; justify-content: center; }
+        .btn-edit { background-color: #fdcb6e; color: #2d3436; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-save { background-color: #00b894; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-del { background-color: #d63031; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-cancel { background-color: #b2bec3; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        
+        .empty-row { color: #888; font-style: italic; padding: 20px 0; }
+        .edit-input, .edit-select { width: 95%; padding: 4px 6px; font-size: 16px; border: 1px solid #e84393; border-radius: 4px; box-sizing: border-box; }
+
+        .badge-reservation { color: #e84393; font-weight: bold; }
+        .badge-store { color: #0984e3; font-weight: bold; }
+        .badge-none { color: #636e72; font-weight: bold; }
+
+        @media (max-width: 600px) {
+            body { padding: 4px; }
+            .container { padding: 12px 6px; }
+            h2 { font-size: 18px; margin-bottom: 15px; }
+            label { font-size: 11px; }
+            select, input { padding: 8px 4px; font-size: 16px; }
+            button { padding: 10px 4px; font-size: 12px; }
+            th, td { padding: 7px 4px; font-size: 12px; }
+            .type-btn-group label { font-size: 11px; }
+            .form-grid-row { grid-template-columns: 1.8fr 1.5fr 0.7fr; gap: 4px; }
+            .table-responsive { max-height: 320px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🌸 그순간꽃 절화주문표</h2>
+    
+    <form id="orderForm" autocomplete="off">
+        <!-- 날짜 선택 필드 -->
+        <div class="form-grid-top" style="margin-bottom: 12px;">
+            <div class="form-group" style="grid-column: span 2;">
+                <label for="orderDate">입고/주문 날짜 선택</label>
+                <input type="date" id="orderDate">
+            </div>
+        </div>
+
+        <div class="form-grid-top">
+            <div class="form-group">
+                <label for="storeName">매장명 (직접입력)</label>
+                <input type="text" id="storeName" placeholder="예: 부천점" enterkeyhint="next">
+            </div>
+            
+            <div class="form-group">
+                <label>구분</label>
+                <div class="type-btn-group">
+                    <input type="radio" id="typeReservation" name="orderTypeBtn" value="예약" checked>
+                    <label for="typeReservation">예약</label>
+                    
+                    <input type="radio" id="typeStore" name="orderTypeBtn" value="매장">
+                    <label for="typeStore">매장</label>
+                    
+                    <input type="radio" id="typeNone" name="orderTypeBtn" value="입고X">
+                    <label for="typeNone">입고X</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-grid-row">
+            <div class="form-group">
+                <label for="flowerCategory">품목 및 꽃이름 (필수)</label>
+                <input type="text" id="flowerCategory" placeholder="선택 또는 직접입력" enterkeyhint="next">
+                <div id="categorySuggestions" class="autocomplete-suggestions" style="display: none;"></div>
+            </div>
+
+            <div class="form-group">
+                <label for="flowerDetail">색상 및 요청사항 (선택)</label>
+                <input type="text" id="flowerDetail" placeholder="예: 핑크 노랑 (다중등록)" enterkeyhint="next">
+            </div>
+
+            <div class="form-group">
+                <label for="flowerQuantity">수량</label>
+                <input type="number" id="flowerQuantity" placeholder="1" min="1" value="" enterkeyhint="send">
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button type="submit" class="btn-submit">목록에 추가하기</button>
+            <button type="button" class="btn-sync" onclick="copyKatalkText()">📋 카톡용 텍스트 복사</button>
+        </div>
+        <div class="btn-container">
+            <button type="button" id="actionBtn" class="btn-action" onclick="handleMainAction()">🚀 중앙 시트로 전송</button>
+        </div>
+    </form>
+
+    <div class="table-header">
+        <h3>📋 작성 중인 내역 (<span id="currentDateTitle">오늘</span>)</h3>
+        <button type="button" class="btn-clear" onclick="clearAllOrders()">날짜별 전체 삭제</button>
+    </div>
+    
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>매장명</th>
+                    <th>구분</th>
+                    <th>품목 및 꽃이름</th>
+                    <th>색상 및 요청사항</th>
+                    <th>수량</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody id="orderTableBody">
+                <tr><td colspan="6" class="empty-row">등록된 데이터가 없습니다.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxYm8qV7rLICXlYvCoPoUnb3vyXv583RM_ApXoVmdu18tDgqWhXZvMnDR6b79uF_eCdfg/exec";
+
+    let orderList = [];
+    let lastAddedId = null;
+    let shouldScrollOnRender = true;
+
+    const presetCategories = [
+        "장미", "SP장미", "거베라", "카네이션", "SP카네이션", 
+        "리시안", "그린류", "메리골드", "소국", "옥시", "공작초"
+    ];
+
+    const typeOrderMap = { "예약": 1, "매장": 2, "입고X": 3 };
+
+    function sortOrderList() {
+        orderList.sort((a, b) => {
+            const orderA = typeOrderMap[a.orderType] || 99;
+            const orderB = typeOrderMap[b.orderType] || 99;
+            if (orderA !== orderB) {
+                return orderA - orderB;
+            }
+            return (a.flowerCategory || "").localeCompare(b.flowerCategory || "");
+        });
+    }
+
+    function getSelectedOrderType() {
+        const checkedRadio = document.querySelector('input[name="orderTypeBtn"]:checked');
+        return checkedRadio ? checkedRadio.value : '예약';
+    }
+
+    function setSelectedOrderType(val) {
+        const targetRadio = document.querySelector(`input[name="orderTypeBtn"][value="${val}"]`);
+        if (targetRadio) targetRadio.checked = true;
+    }
+
+    function getTodayDateString() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function checkAndUpdateButtonState() {
+        const actionBtn = document.getElementById('actionBtn');
+        const selectedDate = document.getElementById('orderDate').value;
+        const lastSentDate = localStorage.getItem(`last_sent_date_${selectedDate}`);
+        const isSent = localStorage.getItem(`is_sent_${selectedDate}`) === 'true';
+
+        if (!lastSentDate || !isSent) {
+            actionBtn.textContent = `🚀 [${selectedDate}] 시트로 전송`;
+            actionBtn.style.backgroundColor = "#00b894";
+            actionBtn.dataset.mode = "send";
+        } else {
+            actionBtn.textContent = `⏪ [${selectedDate}] 전송 취소`;
+            actionBtn.style.backgroundColor = "#e17055";
+            actionBtn.dataset.mode = "undoToday";
+        }
+    }
+
+    function handleMainAction() {
+        const actionBtn = document.getElementById('actionBtn');
+        const mode = actionBtn.dataset.mode || "send";
+
+        if (mode === "send") {
+            sendToGoogleSheet();
+        } else {
+            undoTodaySend();
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const orderDateInput = document.getElementById('orderDate');
+        const savedDate = localStorage.getItem('last_orderDate');
+        orderDateInput.value = savedDate ? savedDate : getTodayDateString();
+
+        orderDateInput.addEventListener('change', (e) => {
+            localStorage.setItem('last_orderDate', e.target.value);
+            checkAndUpdateButtonState();
+            shouldScrollOnRender = false;
+            renderTable();
+        });
+
+        if (localStorage.getItem('last_storeName')) document.getElementById('storeName').value = localStorage.getItem('last_storeName');
+        if (localStorage.getItem('last_orderType')) setSelectedOrderType(localStorage.getItem('last_orderType'));
+
+        const savedList = localStorage.getItem('flower_order_list');
+        if (savedList) {
+            try {
+                orderList = JSON.parse(savedList);
+                sortOrderList();
+            } catch (e) {
+                console.error("저장된 데이터 불러오기 오류", e);
+            }
+        }
+
+        shouldScrollOnRender = false;
+        renderTable();
+        checkAndUpdateButtonState();
+
+        const categoryInput = document.getElementById('flowerCategory');
+        const detailInput = document.getElementById('flowerDetail');
+        const quantityInput = document.getElementById('flowerQuantity');
+        const categorySuggestions = document.getElementById('categorySuggestions');
+        
+        const showCategoryList = setupAutocomplete(categoryInput, categorySuggestions, presetCategories);
+
+        categoryInput.addEventListener('focus', function() {
+            this.value = ''; 
+            showCategoryList(presetCategories);
+        });
+
+        detailInput.addEventListener('focus', () => categorySuggestions.style.display = 'none');
+        quantityInput.addEventListener('focus', () => categorySuggestions.style.display = 'none');
+        
+        categoryInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                categorySuggestions.style.display = 'none';
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCategorySubmission(true);
+            }
+        });
+
+        detailInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addOrder({ keepCategory: true, focusTarget: detailInput });
+            }
+        });
+
+        quantityInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addOrder({ keepCategory: true, focusTarget: detailInput });
+            }
+        });
+    });
+
+    function handleCategorySubmission(isKeyEnter = false) {
+        const categoryInput = document.getElementById('flowerCategory');
+        const detailInput = document.getElementById('flowerDetail');
+        const categorySuggestions = document.getElementById('categorySuggestions');
+        
+        const activeItem = categorySuggestions.querySelector('.autocomplete-item.active');
+        const val = categoryInput.value.trim();
+
+        const matchedPreset = presetCategories.find(cat => cat.toLowerCase() === val.toLowerCase());
+
+        if (!val) {
+            alert('품목을 입력해주세요!');
+            categoryInput.focus();
+            return;
+        }
+
+        if ((activeItem && categorySuggestions.style.display !== 'none') || matchedPreset) {
+            if (activeItem) {
+                categoryInput.value = activeItem.textContent;
+            } else if (matchedPreset) {
+                categoryInput.value = matchedPreset; 
+            }
+            categorySuggestions.style.display = 'none';
+
+            if (document.activeElement === categoryInput || isKeyEnter) {
+                detailInput.focus();
+            } else {
+                addOrder({ keepCategory: true, focusTarget: detailInput });
+            }
+        } else {
+            categorySuggestions.style.display = 'none';
+            addOrder({ keepCategory: false, focusTarget: categoryInput });
+        }
+    }
+
+    function setupAutocomplete(inputElem, containerElem, listData) {
+        let currentFocus = -1;
+
+        function showSuggestions(arr) {
+            containerElem.innerHTML = '';
+            currentFocus = -1;
+            arr.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'autocomplete-item';
+                div.textContent = item;
+                div.addEventListener('click', function() {
+                    inputElem.value = item;
+                    closeSuggestions();
+                    document.getElementById('flowerDetail').focus();
+                });
+                containerElem.appendChild(div);
+            });
+            containerElem.style.display = 'block';
+            containerElem.scrollTop = 0;
+        }
+
+        function closeSuggestions() {
+            containerElem.style.display = 'none';
+            containerElem.innerHTML = '';
+        }
+
+        inputElem.addEventListener('input', function() {
+            const val = this.value.trim();
+            closeSuggestions();
+
+            if (!val) {
+                showSuggestions(listData);
+                return;
+            }
+
+            const filtered = listData.filter(item => item.toLowerCase().includes(val.toLowerCase()));
+            if (filtered.length > 0) showSuggestions(filtered);
+        });
+
+        inputElem.addEventListener('keydown', function(e) {
+            let items = containerElem.getElementsByClassName('autocomplete-item');
+            if (e.keyCode === 40) {
+                currentFocus++;
+                addActive(items);
+            } else if (e.keyCode === 38) {
+                currentFocus--;
+                addActive(items);
+            } else if (e.keyCode === 13) {
+                if (currentFocus > -1 && items && items[currentFocus]) {
+                    e.preventDefault(); 
+                    inputElem.value = items[currentFocus].textContent;
+                    closeSuggestions();
+                    document.getElementById('flowerDetail').focus();
+                }
+            }
+        });
+
+        function addActive(items) {
+            if (!items || items.length === 0) return;
+            removeActive(items);
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            
+            const activeItem = items[currentFocus];
+            activeItem.classList.add('active');
+
+            const itemTop = activeItem.offsetTop;
+            const itemBottom = itemTop + activeItem.offsetHeight;
+            const containerTop = containerElem.scrollTop;
+            const containerBottom = containerTop + containerElem.clientHeight;
+
+            if (itemBottom > containerBottom) {
+                containerElem.scrollTop = itemBottom - containerElem.clientHeight;
+            } else if (itemTop < containerTop) {
+                containerElem.scrollTop = itemTop;
+            }
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+            }
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== inputElem && e.target !== containerElem) {
+                closeSuggestions();
+            }
+        });
+
+        return showSuggestions;
+    }
+
+    document.getElementById('storeName').addEventListener('input', (e) => {
+        localStorage.setItem('last_storeName', e.target.value.trim());
+    });
+
+    document.querySelectorAll('input[name="orderTypeBtn"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            localStorage.setItem('last_orderType', e.target.value);
+        });
+    });
+
+    function saveOrderList() {
+        localStorage.setItem('flower_order_list', JSON.stringify(orderList));
+    }
+
+    const orderForm = document.getElementById('orderForm');
+    orderForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        handleCategorySubmission(false);
+    });
+
+    function addOrder(options = { keepCategory: false, focusTarget: null }) {
+        const storeName = document.getElementById('storeName').value.trim();
+        const orderType = getSelectedOrderType();
+        const categoryElem = document.getElementById('flowerCategory');
+        const flowerCategory = categoryElem.value.trim();
+        const quantityElem = document.getElementById('flowerQuantity');
+        const selectedDate = document.getElementById('orderDate').value;
+        
+        let inputQty = parseInt(quantityElem.value, 10);
+        if (isNaN(inputQty) || inputQty < 1) inputQty = 1;
+
+        const detailElem = document.getElementById('flowerDetail');
+        const rawDetail = detailElem.value.trim();
+
+        if (!selectedDate) {
+            alert('날짜를 먼저 선택해주세요!');
+            document.getElementById('orderDate').focus();
+            return;
+        }
+
+        if (!storeName) {
+            alert('매장명을 입력해주세요!');
+            document.getElementById('storeName').focus();
+            return;
+        }
+
+        if (!flowerCategory) {
+            alert('품목을 입력해주세요!');
+            categoryElem.focus();
+            return;
+        }
+
+        let details = rawDetail.split(/[\s,]+/).filter(item => item !== "");
+        if (details.length === 0) details = [''];
+
+        for (let detail of details) {
+            const existingItem = orderList.find(i => 
+                i.orderDate === selectedDate &&
+                i.storeName === storeName &&
+                i.flowerCategory === flowerCategory &&
+                i.flowerDetail === detail &&
+                i.orderType === orderType
+            );
+
+            if (existingItem) {
+                const updateQty = confirm(`[${selectedDate}] [${existingItem.flowerCategory} - ${existingItem.flowerDetail || '요청사항 없음'}] 항목이 이미 등록되어 있습니다.\n\n수량을 [확인: 기존 수량에 더함] 하시겠습니까?\n([취소: 수량 직접 수정])`);
+                
+                if (updateQty) {
+                    existingItem.flowerQuantity += inputQty;
+                } else {
+                    const newQtyStr = prompt(`변경할 수량을 입력하세요. (현재 수량: ${existingItem.flowerQuantity})`, existingItem.flowerQuantity);
+                    if (newQtyStr !== null) {
+                        const parsed = parseInt(newQtyStr, 10);
+                        if (!isNaN(parsed) && parsed > 0) {
+                            existingItem.flowerQuantity = parsed;
+                        }
+                    }
+                }
+                lastAddedId = existingItem.id;
+            } else {
+                const newItem = {
+                    id: "ID_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5),
+                    orderDate: selectedDate,
+                    createdAt: Date.now(),
+                    storeName,
+                    orderType,
+                    flowerCategory,
+                    flowerQuantity: inputQty,
+                    flowerDetail: detail,
+                    isEditing: false
+                };
+                orderList.push(newItem);
+                lastAddedId = newItem.id;
+            }
+        }
+
+        sortOrderList();
+        saveOrderList();
+        shouldScrollOnRender = true;
+        renderTable();
+
+        detailElem.value = '';
+        quantityElem.value = '';
+        document.getElementById('categorySuggestions').style.display = 'none';
+
+        if (!options.keepCategory) {
+            categoryElem.value = '';
+        }
+
+        if (options.focusTarget) {
+            options.focusTarget.focus();
+        }
+    }
+
+    function generateExportText(listToExport) {
+        if (!listToExport || listToExport.length === 0) return "";
+
+        const currentStoreInput = document.getElementById('storeName').value.trim();
+        const storeNameHeader = currentStoreInput || listToExport[0].storeName;
+        const selectedDate = document.getElementById('orderDate').value;
+
+        let dateHeader = selectedDate;
+        if (selectedDate) {
+            const dateObj = new Date(selectedDate);
+            const year = dateObj.getFullYear();
+            const month = dateObj.getMonth() + 1;
+            const date = dateObj.getDate();
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayName = days[dateObj.getDay()];
+            dateHeader = `${year}년 ${month}월 ${date}일(${dayName})`;
+        }
+
+        let summaryText = `[${storeNameHeader}] 절화주문표\n${dateHeader}\n\n`;
+
+        const typeConfigs = [
+            { type: '예약', icon: '❗' },
+            { type: '매장', icon: '🌸' },
+            { type: '입고X', icon: '⛔' }
+        ];
+
+        typeConfigs.forEach(config => {
+            const filteredList = listToExport.filter(item => item.orderType === config.type);
+            if (filteredList.length === 0) return;
+
+            summaryText += `${config.icon}${config.type}\n`;
+            const groupedMap = new Map();
+
+            filteredList.forEach(item => {
+                const cat = item.flowerCategory || '미지정';
+                if (!groupedMap.has(cat)) groupedMap.set(cat, []);
+
+                const qty = item.flowerQuantity || 1;
+                const detailText = item.flowerDetail ? item.flowerDetail : '';
+                const qtyText = qty >= 2 ? ` ${qty}` : '';
+                
+                const formattedItem = `${detailText}${qtyText}`.trim();
+                if (formattedItem) {
+                    groupedMap.get(cat).push(formattedItem);
+                } else if (qty >= 2) {
+                    groupedMap.get(cat).push(`${qty}`);
+                }
+            });
+
+            groupedMap.forEach((details, category) => {
+                if (details.length > 0) {
+                    summaryText += `${category} - ${details.join(', ')}\n`;
+                } else {
+                    summaryText += `${category}\n`;
+                }
+            });
+            summaryText += `\n`;
+        });
+
+        return summaryText.trim();
+    }
+
+    async function copyKatalkText() {
+        const selectedDate = document.getElementById('orderDate').value;
+        const currentList = orderList.filter(item => item.orderDate === selectedDate);
+
+        if (currentList.length === 0) {
+            alert(`[${selectedDate}]에 복사할 내역이 없습니다.`);
+            return;
+        }
+
+        const exportText = generateExportText(currentList);
+        let copySuccess = false;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(exportText);
+                copySuccess = true;
+            }
+        } catch (e) {
+            console.warn("Clipboard API failed:", e);
+        }
+
+        if (!copySuccess) {
+            try {
+                const textarea = document.createElement("textarea");
+                textarea.value = exportText;
+                textarea.style.position = "fixed";
+                textarea.style.opacity = "0";
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                copySuccess = document.execCommand('copy');
+                document.body.removeChild(textarea);
+            } catch (err) {
+                console.error("Fallback copy failed:", err);
+            }
+        }
+
+        if (copySuccess) {
+            alert(`✅ [${selectedDate}] 카톡용 텍스트 복사 완료!\n바로 카톡창에 붙여넣기 하세요.`);
+        } else {
+            prompt("⚠️ 브라우저 보안 정책으로 자동 복사가 차단되었습니다. 아래 텍스트를 수동으로 복사하세요:", exportText);
+        }
+    }
+
+    async function sendToGoogleSheet() {
+        const selectedDate = document.getElementById('orderDate').value;
+        const currentList = orderList.filter(item => item.orderDate === selectedDate);
+
+        if (currentList.length === 0) {
+            alert(`[${selectedDate}]에 전송할 내역이 없습니다.`);
+            return;
+        }
+
+        if (!confirm(`총 ${currentList.length}개의 주문 항목을 [${selectedDate}] 날짜 시트로 전송하시겠습니까?`)) {
+            return;
+        }
+
+        const sentIds = currentList.map(item => item.id);
+        localStorage.setItem(`last_sent_ids_${selectedDate}`, JSON.stringify(sentIds));
+
+        try {
+            const formData = new FormData();
+            formData.append("data", JSON.stringify({ 
+                action: "send",
+                targetDate: selectedDate,
+                items: currentList 
+            }));
+
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            });
+            
+            localStorage.setItem(`last_sent_date_${selectedDate}`, selectedDate);
+            localStorage.setItem(`is_sent_${selectedDate}`, 'true');
+            
+            checkAndUpdateButtonState();
+            alert(`✅ [${selectedDate}] 시트로 성공적으로 전송되었습니다!`);
+
+        } catch (error) {
+            alert('❌ 구글 시트 전송 중 오류가 발생했습니다.');
+            console.error("전송 에러:", error);
+        }
+    }
+
+    async function undoTodaySend() {
+        const selectedDate = document.getElementById('orderDate').value;
+        const savedIds = JSON.parse(localStorage.getItem(`last_sent_ids_${selectedDate}`) || '[]');
+        
+        if (savedIds.length === 0) {
+            alert(`[${selectedDate}]에 취소할 전송 내역이 없습니다.`);
+            return;
+        }
+
+        if (!confirm(`[${selectedDate}] 시트로 전송했던 내역을 전부 취소(삭제)하시겠습니까?`)) {
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("data", JSON.stringify({ 
+                action: "undoToday", 
+                targetDate: selectedDate,
+                targetIds: savedIds
+            }));
+
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: formData
+            });
+
+            localStorage.setItem(`is_sent_${selectedDate}`, 'false');
+            localStorage.removeItem(`last_sent_date_${selectedDate}`);
+            localStorage.removeItem(`last_sent_ids_${selectedDate}`);
+            checkAndUpdateButtonState();
+
+            alert(`✅ [${selectedDate}] 시트에서 전송 내역이 정상적으로 취소(삭제)되었습니다.`);
+
+        } catch (error) {
+            alert('❌ 전송 취소 처리 중 오류가 발생했습니다.');
+            console.error("전송 취소 에러:", error);
+        }
+    }
+
+    function deleteItem(id) {
+        orderList = orderList.filter(item => item.id !== id);
+        saveOrderList();
+        shouldScrollOnRender = false;
+        renderTable();
+    }
+
+    function toggleEdit(id) {
+        const item = orderList.find(i => i.id == id);
+        if (item) {
+            item.isEditing = true;
+            shouldScrollOnRender = false;
+            renderTable();
+            setTimeout(() => {
+                const editInput = document.getElementById(`edit-category-${id}`);
+                const editSuggestions = document.getElementById(`edit-suggestions-${id}`);
+                if (editInput && editSuggestions) {
+                    setupAutocomplete(editInput, editSuggestions, presetCategories);
+                    editInput.focus();
+                    editInput.select();
+                }
+            }, 50);
+        }
+    }
+
+    function cancelEdit(id) {
+        const item = orderList.find(i => i.id == id);
+        if (item) {
+            item.isEditing = false;
+            shouldScrollOnRender = false;
+            renderTable();
+        }
+    }
+
+    function saveEdit(id) {
+        const item = orderList.find(i => i.id == id);
+        if (!item) return;
+
+        const newStoreName = document.getElementById(`edit-store-${id}`).value.trim();
+        const newOrderType = document.getElementById(`edit-type-${id}`).value;
+        const newFlowerCategory = document.getElementById(`edit-category-${id}`).value.trim();
+        let newFlowerQuantity = parseInt(document.getElementById(`edit-quantity-${id}`).value, 10);
+        if (isNaN(newFlowerQuantity) || newFlowerQuantity < 1) newFlowerQuantity = 1;
+        const newFlowerDetail = document.getElementById(`edit-detail-${id}`).value.trim();
+
+        if (!newStoreName) {
+            alert('매장명을 입력해주세요!');
+            return;
+        }
+
+        if (!newFlowerCategory) {
+            alert('품목을 입력해주세요!');
+            return;
+        }
+
+        item.storeName = newStoreName;
+        item.orderType = newOrderType;
+        item.flowerCategory = newFlowerCategory;
+        item.flowerQuantity = newFlowerQuantity;
+        item.flowerDetail = newFlowerDetail;
+        item.isEditing = false;
+
+        sortOrderList();
+        saveOrderList();
+        shouldScrollOnRender = false;
+        renderTable();
+    }
+
+    function clearAllOrders() {
+        const selectedDate = document.getElementById('orderDate').value;
+        const currentList = orderList.filter(item => item.orderDate === selectedDate);
+
+        if (currentList.length === 0) {
+            alert(`[${selectedDate}]에 삭제할 데이터가 없습니다.`);
+            return;
+        }
+        
+        if (confirm(`[${selectedDate}] 날짜에 등록된 전체 내역을 삭제하시겠습니까?`)) {
+            orderList = orderList.filter(item => item.orderDate !== selectedDate);
+            lastAddedId = null;
+            saveOrderList();
+            shouldScrollOnRender = false;
+            renderTable();
+        }
+    }
+
+    function renderTable() {
+        const selectedDate = document.getElementById('orderDate').value;
+        document.getElementById('currentDateTitle').textContent = selectedDate || '날짜 선택 필요';
+
+        const tbody = document.getElementById('orderTableBody');
+        tbody.innerHTML = '';
+
+        const currentList = orderList.filter(item => item.orderDate === selectedDate);
+
+        if (currentList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-row">[${selectedDate}]에 등록된 데이터가 없습니다.</td></tr>`;
+            checkAndUpdateButtonState();
+            return;
+        }
+
+        currentList.forEach(item => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', item.id);
+
+            if (item.isEditing) {
+                row.innerHTML = `
+                    <td><input type="text" id="edit-store-${item.id}" class="edit-input" value="${item.storeName}"></td>
+                    <td>
+                        <select id="edit-type-${item.id}" class="edit-select">
+                            <option value="예약" ${item.orderType === '예약' ? 'selected' : ''}>예약</option>
+                            <option value="매장" ${item.orderType === '매장' ? 'selected' : ''}>매장</option>
+                            <option value="입고X" ${item.orderType === '입고X' ? 'selected' : ''}>입고X</option>
+                        </select>
+                    </td>
+                    <td style="position: relative;">
+                        <input type="text" id="edit-category-${item.id}" class="edit-input" value="${item.flowerCategory}" placeholder="품목 입력">
+                        <div id="edit-suggestions-${item.id}" class="autocomplete-suggestions" style="display: none;"></div>
+                    </td>
+                    <td><input type="text" id="edit-detail-${item.id}" class="edit-input" value="${item.flowerDetail}"></td>
+                    <td><input type="number" id="edit-quantity-${item.id}" class="edit-input" value="${item.flowerQuantity || 1}" min="1"></td>
+                    <td>
+                        <div class="action-btns">
+                            <button type="button" class="btn-save" onclick="saveEdit('${item.id}')">저장</button>
+                            <button type="button" class="btn-cancel" onclick="cancelEdit('${item.id}')">취소</button>
+                        </div>
+                    </td>
+                `;
+            } else {
+                let badgeClass = '';
+                if (item.orderType === '예약') badgeClass = 'badge-reservation';
+                else if (item.orderType === '매장') badgeClass = 'badge-store';
+                else if (item.orderType === '입고X') badgeClass = 'badge-none';
+
+                row.innerHTML = `
+                    <td>${item.storeName}</td>
+                    <td><span class="${badgeClass}">${item.orderType}</span></td>
+                    <td>${item.flowerCategory || '-'}</td>
+                    <td>${item.flowerDetail || '-'}</td>
+                    <td>${item.flowerQuantity || 1}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button type="button" class="btn-edit" onclick="toggleEdit('${item.id}')">수정</button>
+                            <button type="button" class="btn-del" onclick="deleteItem('${item.id}')">삭제</button>
+                        </div>
+                    </td>
+                `;
+            }
+            tbody.appendChild(row);
+        });
+
+        checkAndUpdateButtonState();
+
+        if (shouldScrollOnRender && lastAddedId) {
+            setTimeout(() => {
+                const targetRow = document.querySelector(`tr[data-id="${lastAddedId}"]`);
+                if (targetRow) {
+                    targetRow.classList.remove('row-highlight');
+                    void targetRow.offsetWidth;
+                    targetRow.classList.add('row-highlight');
+
+                    if (window.innerWidth > 600) {
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+
+                    setTimeout(() => {
+                        targetRow.classList.remove('row-highlight');
+                    }, 1600);
+                }
+            }, 60);
+        }
+        shouldScrollOnRender = true;
+    }
+</script>
+
+</body>
+</html>
